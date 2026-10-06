@@ -11,7 +11,7 @@ use std::{
 
 pub const DEFAULT_API: &str = match option_env!("VALOINGEST_API") {
     Some(api) => api,
-    None => "https://valoingest.billowing-violet-1c47.workers.dev",
+    None => "https://valoingest.odinnichols.dev",
 };
 
 pub fn now_secs() -> u64 {
@@ -71,7 +71,21 @@ impl Default for Settings {
     }
 }
 
+/// Servers earlier builds saved as their default; moved to `DEFAULT_API` on start.
+pub const RETIRED_APIS: &[&str] = &["https://valoingest.billowing-violet-1c47.workers.dev"];
+
 impl Settings {
+    /// Moves a saved retired default to the current one. Returns the old API
+    /// when it changed, so the stored session can be carried over.
+    pub fn migrate_api(&mut self) -> Option<String> {
+        let current = self.api().to_owned();
+        if current != DEFAULT_API && RETIRED_APIS.contains(&current.as_str()) {
+            self.api = DEFAULT_API.to_owned();
+            return Some(current);
+        }
+        None
+    }
+
     pub fn demos_dir(&self) -> PathBuf {
         self.demos_dir.clone().unwrap_or_else(default_demos_dir)
     }
@@ -246,6 +260,22 @@ mod tests {
         assert!(!settings.publish);
         assert!(settings.auto_upload);
         assert_eq!(settings.api, DEFAULT_API);
+    }
+
+    #[test]
+    fn retired_default_servers_move_to_the_current_one() {
+        let mut settings = Settings {
+            api: format!("{}/", RETIRED_APIS[0]),
+            ..Settings::default()
+        };
+        assert_eq!(settings.migrate_api().as_deref(), Some(RETIRED_APIS[0]));
+        assert_eq!(settings.api, DEFAULT_API);
+        assert_eq!(settings.migrate_api(), None, "only once");
+        let mut custom = Settings {
+            api: "https://self-hosted.example".into(),
+            ..Settings::default()
+        };
+        assert_eq!(custom.migrate_api(), None, "custom servers are left alone");
     }
 
     #[test]

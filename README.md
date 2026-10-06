@@ -1,6 +1,6 @@
 # Valoingest Desktop
 
-A Windows notification-area app that watches VALORANT replay downloads and uploads them to [Valoingest](https://valoingest.billowing-violet-1c47.workers.dev).
+A Windows notification-area app that watches VALORANT replay downloads and uploads them to [Valoingest](https://valoingest.odinnichols.dev).
 
 ## Download and run
 

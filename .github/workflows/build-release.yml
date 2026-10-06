@@ -69,6 +69,16 @@ jobs:
         env:
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
         run: |
+          # A newer push gets its own build. Do not release superseded main
+          # commits, which may also lack permission to create workflow tags.
+          if ($env:GITHUB_REF_TYPE -eq 'branch' -and $env:GITHUB_REF_NAME -eq 'main') {
+            $head = gh api "repos/$env:GITHUB_REPOSITORY/commits/main" --jq .sha
+            if ($LASTEXITCODE -ne 0) { throw 'Could not verify the current main commit' }
+            if ($head -ne $env:GITHUB_SHA) {
+              Write-Host 'A newer main build will publish the release.'
+              exit 0
+            }
+          }
           $existing = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json isDraft 2>$null
           if ($LASTEXITCODE -eq 0) {
             if (!($existing | ConvertFrom-Json).isDraft) {

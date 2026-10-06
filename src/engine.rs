@@ -121,7 +121,20 @@ impl Engine {
         let dir = store::app_dir();
         let settings_path = dir.join("settings.json");
         let ledger_path = dir.join("uploads.json");
-        let settings: Settings = store::load(&settings_path);
+        let mut settings: Settings = store::load(&settings_path);
+        if let Some(retired) = settings.migrate_api() {
+            // Same backend on a new hostname: keep the user signed in.
+            let old = Credentials::for_api(&retired);
+            if let Some(token) = old.read()
+                && Credentials::for_api(settings.api()).write(&token).is_ok()
+            {
+                old.delete();
+            }
+            if let Err(error) = store::save(&settings_path, &settings) {
+                log::error!("could not save migrated settings: {error}");
+            }
+            log::info!("moved from {retired} to {}", settings.api());
+        }
         let ledger: Ledger = store::load(&ledger_path);
         let api = Api::new(settings.api());
         let credentials = Credentials::for_api(settings.api());
