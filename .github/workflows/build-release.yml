@@ -1,0 +1,79 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_TERM_COLOR: always
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install stable Rust
+        run: rustup update stable --no-self-update
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Lint
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --locked
+      - name: Build Windows x64
+        run: cargo build --locked --release --target x86_64-pc-windows-msvc
+      - name: Package
+        id: package
+        run: |
+          $metadata = cargo metadata --no-deps --format-version 1 | ConvertFrom-Json
+          $version = $metadata.packages[0].version
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Releases require a stable version' }
+          $tag = "v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
+            throw "Tag must match Cargo.toml version ($tag)"
+          }
+          New-Item -ItemType Directory -Force .release | Out-Null
+          Copy-Item target/x86_64-pc-windows-msvc/release/valoingest.exe .release/valoingest-windows-x64.exe
+          $hash = (Get-FileHash .release/valoingest-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  valoingest-windows-x64.exe" | Set-Content .release/SHA256SUMS -Encoding ascii
+          Compress-Archive -Path .release/valoingest-windows-x64.exe,README.md -DestinationPath .release/valoingest-windows-x64.zip
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: valoingest-windows-x64
+          path: .release/*
+          if-no-files-found: error
+      - name: Publish versioned release
+        if: github.event_name != 'pull_request'
+        env:
+          RELEASE_TAG: ${{ steps.package.outputs.tag }}
+        run: |
+          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $env:RELEASE_TAG already exists; bump Cargo.toml to publish another."
+            exit 0
+          }
+          gh api "repos/$env:GITHUB_REPOSITORY" --silent
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub API is unavailable' }
+          gh release create $env:RELEASE_TAG .release/valoingest-windows-x64.exe .release/valoingest-windows-x64.zip .release/SHA256SUMS --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "Valoingest $env:RELEASE_TAG" --generate-notes --draft
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release' }
+          gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release' }
