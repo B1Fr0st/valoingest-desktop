@@ -48,6 +48,6 @@ After a release build, `powershell -File scripts/Test-UpdateHelper.ps1` checks t
 
 ## Automated releases
 
-GitHub Actions checks formatting, runs Clippy and tests, and builds Windows x64 on pushes to `main`, pull requests, version tags, and manual workflow runs. Successful main/tag/manual builds publish a release for the version in `Cargo.toml` if that release does not already exist. Pull requests produce artifacts only.
+GitHub Actions checks formatting, runs Clippy and tests, builds Windows x64, and verifies the update helper against the published baseline on pushes to `main`, pull requests, version tags, and manual workflow runs. Successful main/tag/manual builds publish a release for the version in `Cargo.toml` if that release does not already exist. Pull requests produce artifacts only. A retry resumes an interrupted draft release; published assets are never overwritten.
 
 To publish an update, increase `version` in `Cargo.toml`, run `cargo check` to update `Cargo.lock`, commit both, and push to `main`. Tags must match the manifest version (`v0.1.0`, for example). Each release contains the executable, a ZIP, and `SHA256SUMS`. Assets are attached to a draft before it is published.
