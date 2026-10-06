@@ -32,6 +32,7 @@ const TICK: Duration = Duration::from_secs(2);
 const FILE_SHARE_READ: u32 = 1;
 
 pub enum Command {
+    UpdateReady(Box<crate::updater::PreparedUpdate>),
     SignIn,
     CancelSignIn,
     SignedIn(Result<crate::api::DesktopSession, String>),
@@ -112,6 +113,7 @@ pub struct Engine {
     sign_in_cancel: Option<Arc<AtomicBool>>,
     activity: String,
     notices: Vec<Notice>,
+    update: Option<Box<crate::updater::PreparedUpdate>>,
 }
 
 impl Engine {
@@ -142,6 +144,7 @@ impl Engine {
             sign_in_cancel: None,
             activity: "Starting".into(),
             notices: Vec::new(),
+            update: None,
         }
     }
 
@@ -160,6 +163,25 @@ impl Engine {
             while let Ok(command) = commands.try_recv() {
                 self.handle(command);
             }
+            // Commands are processed between synchronous uploads, so replacing
+            // the app cannot interrupt a multipart upload or a ledger write.
+            if let Some(update) = self.update.take() {
+                self.save_ledger();
+                match update.launch() {
+                    Ok(()) => {
+                        crate::tray::request_exit();
+                        return;
+                    }
+                    Err(error) => {
+                        log::warn!("automatic update deferred: {error}");
+                        self.notify(
+                            "Update deferred",
+                            "Valoingest could not install an update. It will retry next startup; see the log for details.",
+                            true,
+                        );
+                    }
+                }
+            }
             self.ensure_watcher();
             self.scan_if_due();
             self.poll_processing();
@@ -171,6 +193,7 @@ impl Engine {
 
     fn handle(&mut self, command: Command) {
         match command {
+            Command::UpdateReady(update) => self.update = Some(update),
             Command::SignIn => self.begin_sign_in(),
             Command::CancelSignIn => {
                 if let Some(cancel) = self.sign_in_cancel.take() {

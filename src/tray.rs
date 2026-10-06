@@ -12,7 +12,7 @@ use std::{
     ptr,
     sync::{
         Arc,
-        atomic::{AtomicPtr, Ordering},
+        atomic::{AtomicBool, AtomicPtr, Ordering},
         mpsc::Sender,
     },
 };
@@ -40,9 +40,20 @@ use windows_sys::Win32::{
 
 const WM_TRAY: u32 = WM_APP + 1;
 const WM_REFRESH: u32 = WM_APP + 2;
+const WM_EXIT: u32 = WM_APP + 3;
 const ICON_ID: u32 = 1;
 
 static WINDOW: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+/// Ends the tray loop after the updater has safely stopped the engine.
+pub fn request_exit() {
+    EXIT_REQUESTED.store(true, Ordering::Release);
+    let hwnd = WINDOW.load(Ordering::Acquire);
+    if !hwnd.is_null() {
+        unsafe { PostMessageW(hwnd, WM_EXIT, 0, 0) };
+    }
+}
 
 /// Asks the tray thread to redraw from the shared snapshot. Safe from any thread.
 pub fn wake() {
@@ -156,6 +167,9 @@ pub fn run(shared: Arc<Shared>, commands: Sender<Command>) {
         WINDOW.store(hwnd, Ordering::Release);
         with_tray(|tray| tray.add_icon());
         wake();
+        if EXIT_REQUESTED.load(Ordering::Acquire) {
+            PostMessageW(hwnd, WM_EXIT, 0, 0);
+        }
 
         let mut message = MSG::default();
         while GetMessageW(&mut message, ptr::null_mut(), 0, 0) > 0 {
@@ -194,6 +208,10 @@ unsafe extern "system" fn window_proc(
         }
         WM_DESTROY => {
             unsafe { PostQuitMessage(0) };
+            0
+        }
+        WM_EXIT => {
+            unsafe { DestroyWindow(hwnd) };
             0
         }
         _ if with_tray(|tray| tray.taskbar_created == message).unwrap_or(false) => {

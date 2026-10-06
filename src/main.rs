@@ -12,6 +12,7 @@ mod login;
 mod platform;
 mod store;
 mod tray;
+mod updater;
 
 use std::{
     fs::{self, File, OpenOptions},
@@ -65,12 +66,30 @@ fn init_logging() {
 }
 
 fn main() {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "--version")
+    {
+        println!("valoingest {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     init_logging();
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "--apply-update")
+    {
+        if let Err(error) = updater::apply_update() {
+            log::error!("update installation failed: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if !platform::acquire_single_instance() {
         log::info!("another instance is already running");
         return;
     }
     log::info!("valoingest {} starting", env!("CARGO_PKG_VERSION"));
+    updater::cleanup_completed();
 
     let (sender, receiver) = mpsc::channel();
     let shared = Arc::new(engine::Shared::new(tray::wake));
@@ -79,6 +98,10 @@ fn main() {
         .name("engine".into())
         .spawn(move || engine.run(receiver))
         .expect("could not start the upload engine");
+
+    if !std::env::args_os().any(|arg| arg == "--skip-update") {
+        updater::start(sender.clone());
+    }
 
     tray::run(shared, sender);
     log::info!("valoingest exiting");

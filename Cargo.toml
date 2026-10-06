@@ -1,6 +1,6 @@
 [package]
 name = "valoingest-desktop"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Valoingest tray service: watches VALORANT replay downloads and uploads them"
 
@@ -15,6 +15,7 @@ log = "0.4"
 notify = { version = "8.2", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+semver = "1"
 sha2 = "0.10"
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 windows-sys = { version = "0.61", features = [
@@ -22,6 +23,7 @@ windows-sys = { version = "0.61", features = [
     "Win32_Graphics_Gdi",
     "Win32_Security",
     "Win32_Security_Credentials",
+    "Win32_Storage_FileSystem",
     "Win32_System_LibraryLoader",
     "Win32_System_Registry",
     "Win32_System_Threading",
