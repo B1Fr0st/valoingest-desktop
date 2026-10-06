@@ -7,7 +7,7 @@ $testRoot = Join-Path $workspace '.update-test'
 $testDir = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 $fixture = Join-Path $testDir 'fixture'
 $install = Join-Path $testDir 'install'
-$target = Join-Path $install 'valoingest.exe'
+$target = Join-Path $install 'valolysis.exe'
 $previousAppData = $env:LOCALAPPDATA
 $previousTargetDir = $env:CARGO_TARGET_DIR
 $process = $null
@@ -23,19 +23,19 @@ try {
     $manifest = [regex]::Replace($manifest, '(?m)^version = "[^"]+"', 'version = "0.0.0"')
     [IO.File]::WriteAllText($manifestPath, $manifest, [Text.UTF8Encoding]::new($false))
     $platformPath = Join-Path $fixture 'src/platform.rs'
-    $platform = (Get-Content $platformPath -Raw).Replace('ValoingestDesktop', ('ValoingestDesktopTest' + [Guid]::NewGuid().ToString('N')))
+    $platform = (Get-Content $platformPath -Raw).Replace('ValolysisDesktop', ('ValolysisDesktopTest' + [Guid]::NewGuid().ToString('N')))
     [IO.File]::WriteAllText($platformPath, $platform, [Text.UTF8Encoding]::new($false))
     $env:CARGO_TARGET_DIR = Join-Path $testDir 'build'
     cargo build --release --manifest-path $manifestPath
     if ($LASTEXITCODE -ne 0) { throw 'Could not build the older fixture' }
-    Copy-Item -LiteralPath (Join-Path $env:CARGO_TARGET_DIR 'release/valoingest.exe') -Destination $target
+    Copy-Item -LiteralPath (Join-Path $env:CARGO_TARGET_DIR 'release/valolysis.exe') -Destination $target
     $oldHash = (Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant()
-    $latest = gh api repos/B1Fr0st/valoingest-desktop/releases/latest | ConvertFrom-Json
+    $latest = gh api repos/B1Fr0st/valolysis-desktop/releases/latest | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0) { throw 'Could not read the published release' }
-    $asset = $latest.assets | Where-Object { $_.name -eq 'valoingest-windows-x64.exe' }
+    $asset = $latest.assets | Where-Object { $_.name -eq 'valolysis-windows-x64.exe' }
     $expectedHash = $asset.digest.Substring(7)
     $env:LOCALAPPDATA = Join-Path $testDir 'AppData'
-    $settingsDir = Join-Path $env:LOCALAPPDATA 'Valoingest'
+    $settingsDir = Join-Path $env:LOCALAPPDATA 'Valolysis'
     $demosDir = Join-Path $testDir 'EmptyDemos'
     New-Item -ItemType Directory -Path $settingsDir, $demosDir -Force | Out-Null
     $settings = @{ api = 'http://127.0.0.1:1'; auto_upload = $false; demos_dir = $demosDir } | ConvertTo-Json
@@ -52,7 +52,7 @@ try {
     }
     if (!$process.WaitForExit(10000)) { throw 'The older app did not exit for the updater' }
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
-    $logPath = Join-Path $settingsDir 'valoingest.log'
+    $logPath = Join-Path $settingsDir 'valolysis.log'
     do {
         $log = Get-Content -LiteralPath $logPath -Raw
         if ($log.Contains('desktop updated to ' + $latest.tag_name.Substring(1))) { break }
@@ -63,7 +63,7 @@ try {
     Write-Output "PASS: startup version 0.0.0 automatically downloaded, verified, installed and launched $($latest.tag_name) from GitHub"
 }
 catch {
-    $logPath = Join-Path $env:LOCALAPPDATA 'Valoingest/valoingest.log'
+    $logPath = Join-Path $env:LOCALAPPDATA 'Valolysis/valolysis.log'
     if (Test-Path -LiteralPath $logPath) { Get-Content -LiteralPath $logPath -Tail 20 | Write-Host }
     throw
 }

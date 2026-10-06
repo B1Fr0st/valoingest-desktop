@@ -121,7 +121,7 @@ thread_local! {
 pub fn run(shared: Arc<Shared>, commands: Sender<Command>) {
     unsafe {
         let instance = GetModuleHandleW(ptr::null());
-        let class_name = wide("ValoingestTray");
+        let class_name = wide("ValolysisTray");
         let class = WNDCLASSEXW {
             cbSize: size_of::<WNDCLASSEXW>() as u32,
             lpfnWndProc: Some(window_proc),
@@ -130,7 +130,7 @@ pub fn run(shared: Arc<Shared>, commands: Sender<Command>) {
             ..Default::default()
         };
         RegisterClassExW(&class);
-        let title = wide("Valoingest");
+        let title = wide("Valolysis");
         // A hidden top-level window: it receives icon callbacks and owns the menu.
         let hwnd = CreateWindowExW(
             0,
@@ -280,7 +280,7 @@ impl Tray {
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
         data.uCallbackMessage = WM_TRAY;
         data.hIcon = self.idle_icon;
-        fill(&mut data.szTip, "Valoingest");
+        fill(&mut data.szTip, "Valolysis");
         unsafe {
             Shell_NotifyIconW(NIM_ADD, &data);
             data.Anonymous.uVersion = NOTIFYICON_VERSION_4;
@@ -305,7 +305,7 @@ impl Tray {
         };
         fill(
             &mut data.szTip,
-            &format!("Valoingest\n{}", snapshot.activity),
+            &format!("Valolysis\n{}", snapshot.activity),
         );
         unsafe { Shell_NotifyIconW(NIM_MODIFY, &data) };
 
@@ -417,7 +417,7 @@ fn action(item: Item, text: impl Into<String>, checked: bool) -> MenuEntry {
 fn menu_entries(snapshot: &Snapshot, autostart: bool) -> Vec<MenuEntry> {
     let settings = &snapshot.settings;
     let mut entries = vec![MenuEntry::Label(format!(
-        "Valoingest: {}",
+        "Valolysis: {}",
         snapshot.activity
     ))];
     if snapshot.signed_in {
@@ -510,7 +510,7 @@ fn menu_entries(snapshot: &Snapshot, autostart: bool) -> Vec<MenuEntry> {
         checked: false,
         enabled: snapshot.folder_found,
     });
-    entries.push(action(Item::OpenWebsite, "Open Valoingest website", false));
+    entries.push(action(Item::OpenWebsite, "Open Valolysis website", false));
     entries.push(MenuEntry::Separator);
     entries.push(action(Item::Autostart, "Start with Windows", autostart));
     entries.push(action(
@@ -521,7 +521,7 @@ fn menu_entries(snapshot: &Snapshot, autostart: bool) -> Vec<MenuEntry> {
     if snapshot.signed_in {
         entries.push(action(Item::SignOut, "Sign out", false));
     }
-    entries.push(action(Item::Quit, "Quit Valoingest", false));
+    entries.push(action(Item::Quit, "Quit Valolysis", false));
     entries
 }
 

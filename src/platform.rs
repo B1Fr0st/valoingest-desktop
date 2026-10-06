@@ -40,7 +40,7 @@ pub fn fill(buffer: &mut [u16], text: &str) {
 
 /// Returns false when another instance already holds the mutex.
 pub fn acquire_single_instance() -> bool {
-    let name = wide("Local\\ValoingestDesktop");
+    let name = wide("Local\\ValolysisDesktop");
     // The handle is intentionally kept for the life of the process.
     let handle = unsafe { CreateMutexW(ptr::null(), 0, name.as_ptr()) };
     !handle.is_null() && unsafe { GetLastError() } != ERROR_ALREADY_EXISTS
@@ -89,7 +89,7 @@ pub fn recycle(path: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// The Valoingest session token in Windows Credential Manager, per API host.
+/// The Valolysis session token in Windows Credential Manager, per API host.
 pub struct Credentials {
     target: Vec<u16>,
 }
@@ -104,7 +104,7 @@ impl Credentials {
             .next()
             .unwrap_or(api);
         Self {
-            target: wide(format!("valoingest:{host}")),
+            target: wide(format!("valolysis:{host}")),
         }
     }
 
@@ -155,7 +155,7 @@ impl Credentials {
 }
 
 const RUN_KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-const RUN_VALUE: &str = "Valoingest";
+const RUN_VALUE: &str = "Valolysis";
 
 fn run_command() -> Option<String> {
     let exe = std::env::current_exe().ok()?;
@@ -230,10 +230,8 @@ mod tests {
     #[test]
     #[ignore]
     fn recycle_moves_a_file_to_the_recycle_bin() {
-        let path = std::env::temp_dir().join(format!(
-            "valoingest-recycle-test-{}.vrf",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("valolysis-recycle-test-{}.vrf", std::process::id()));
         std::fs::write(&path, b"test").unwrap();
         recycle(&path).unwrap();
         assert!(!path.exists());
@@ -241,10 +239,10 @@ mod tests {
 
     #[test]
     fn credential_target_uses_host() {
-        let credentials = Credentials::for_api("https://valoingest.example.test/");
+        let credentials = Credentials::for_api("https://valolysis.example.test/");
         assert_eq!(
             String::from_utf16_lossy(&credentials.target),
-            "valoingest:valoingest.example.test\0"
+            "valolysis:valolysis.example.test\0"
         );
     }
 }

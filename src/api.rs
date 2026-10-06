@@ -1,11 +1,11 @@
-//! Valoingest HTTP API client.
+//! Valolysis HTTP API client.
 
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::time::Duration;
 use ureq::Agent;
 
-const USER_AGENT: &str = concat!("valoingest-desktop/", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &str = concat!("valolysis-desktop/", env!("CARGO_PKG_VERSION"));
 const MAX_RESPONSE_BYTES: u64 = 1024 * 1024;
 
 #[derive(Debug)]

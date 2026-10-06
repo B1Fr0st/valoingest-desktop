@@ -1,4 +1,4 @@
-//! Browser sign-in brokered by the Valoingest Worker.
+//! Browser sign-in brokered by the Valolysis Worker.
 //!
 //! The app opens `/v1/auth/desktop/start` in the system browser with a
 //! loopback port, a random state and a PKCE challenge. After Google sign-in
@@ -93,7 +93,7 @@ fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
 
 fn respond(mut stream: TcpStream, status: &str, message: &str) {
     let body = format!(
-        "<!doctype html><meta charset=utf-8><title>Valoingest</title>\
+        "<!doctype html><meta charset=utf-8><title>Valolysis</title>\
          <body style=\"font:16px system-ui;background:#0f1923;color:#ece8e1;display:grid;place-items:center;height:90vh\">\
          <p>{message}</p></body>"
     );
@@ -143,7 +143,7 @@ pub fn sign_in(
                         respond(
                             stream,
                             "200 OK",
-                            "Signed in to Valoingest. You can close this tab.",
+                            "Signed in to Valolysis. You can close this tab.",
                         );
                         break code;
                     }

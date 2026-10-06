@@ -1,11 +1,11 @@
 [package]
-name = "valoingest-desktop"
-version = "0.2.1"
+name = "valolysis-desktop"
+version = "0.3.0"
 edition = "2024"
-description = "Valoingest tray service: watches VALORANT replay downloads and uploads them"
+description = "Valolysis tray service: watches VALORANT replay downloads and uploads them"
 
 [[bin]]
-name = "valoingest"
+name = "valolysis"
 path = "src/main.rs"
 
 [dependencies]

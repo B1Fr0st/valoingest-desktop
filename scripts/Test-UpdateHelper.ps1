@@ -1,15 +1,15 @@
 param(
-    [string]$NewExecutable = (Join-Path $PSScriptRoot '../target/release/valoingest.exe')
+    [string]$NewExecutable = (Join-Path $PSScriptRoot '../target/release/valolysis.exe')
 )
 
-# An opt-in integration check against the first published binary. It creates
+# An opt-in executable-replacement integration check. It creates
 # its own parent process and install directory and never stops the user's app.
 $ErrorActionPreference = 'Stop'
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $testRoot = Join-Path $workspace '.update-test'
 $testDir = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
-$stage = Join-Path $testDir ('.valoingest-update-' + [Guid]::NewGuid().ToString('N'))
-$target = Join-Path $testDir 'Valoingest app.exe'
+$stage = Join-Path $testDir ('.valolysis-update-' + [Guid]::NewGuid().ToString('N'))
+$target = Join-Path $testDir 'Valolysis app.exe'
 $helper = $null
 $parent = $null
 $previousAppData = $env:LOCALAPPDATA
@@ -19,9 +19,7 @@ try {
     $env:LOCALAPPDATA = Join-Path $testDir 'AppData'
     $manifest = Get-Content (Join-Path $workspace 'Cargo.toml') -Raw
     $version = [regex]::Match($manifest, '(?m)^version = "([^"]+)"').Groups[1].Value
-    gh release download v0.1.0 --repo B1Fr0st/valoingest-desktop --pattern valoingest-windows-x64.exe --dir $testDir
-    if ($LASTEXITCODE -ne 0) { throw 'Could not download the baseline release' }
-    Move-Item -LiteralPath (Join-Path $testDir 'valoingest-windows-x64.exe') -Destination $target
+    Copy-Item -LiteralPath (Join-Path $env:WINDIR 'System32/where.exe') -Destination $target
     Copy-Item -LiteralPath $NewExecutable -Destination (Join-Path $stage 'helper.exe')
     $newHash = (Get-FileHash $NewExecutable -Algorithm SHA256).Hash.ToLowerInvariant()
     $oldHash = (Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -57,13 +55,13 @@ try {
     if (!(Test-Path (Join-Path $stage 'complete'))) { throw 'Missing completion receipt' }
     $versionProcess = Start-Process $target -ArgumentList '--version' -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $testDir 'version.txt')
     if (!$versionProcess.WaitForExit(10000)) { Stop-Process -Id $versionProcess.Id; throw 'Version check timed out' }
-    if ((Get-Content (Join-Path $testDir 'version.txt') -Raw).Trim() -ne "valoingest $version") {
+    if ((Get-Content (Join-Path $testDir 'version.txt') -Raw).Trim() -ne "valolysis $version") {
         throw 'Updated binary reports the wrong version'
     }
     Write-Output "PASS: parent-exit handoff, real executable replacement, old-binary backup, restart launch, and version $version"
 }
 catch {
-    $logPath = Join-Path $env:LOCALAPPDATA 'Valoingest/valoingest.log'
+    $logPath = Join-Path $env:LOCALAPPDATA 'Valolysis/valolysis.log'
     if (Test-Path -LiteralPath $logPath) { Get-Content -LiteralPath $logPath -Tail 12 | Write-Host }
     throw
 }

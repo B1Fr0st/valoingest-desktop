@@ -1,4 +1,4 @@
-//! Valoingest tray service.
+//! Valolysis tray service.
 //!
 //! Lives in the Windows notification area, watches
 //! `%LOCALAPPDATA%\VALORANT\Saved\Demos` and uploads each replay the game
@@ -53,9 +53,9 @@ impl log::Log for FileLogger {
 fn init_logging() {
     let dir = store::app_dir();
     let _ = fs::create_dir_all(&dir);
-    let path = dir.join("valoingest.log");
+    let path = dir.join("valolysis.log");
     if fs::metadata(&path).is_ok_and(|metadata| metadata.len() > LOG_LIMIT_BYTES) {
-        let _ = fs::rename(&path, dir.join("valoingest.old.log"));
+        let _ = fs::rename(&path, dir.join("valolysis.old.log"));
     }
     if let Ok(file) = OpenOptions::new().create(true).append(true).open(path) {
         let logger = Box::leak(Box::new(FileLogger(Mutex::new(file))));
@@ -70,7 +70,7 @@ fn main() {
         .nth(1)
         .is_some_and(|arg| arg == "--version")
     {
-        println!("valoingest {}", env!("CARGO_PKG_VERSION"));
+        println!("valolysis {}", env!("CARGO_PKG_VERSION"));
         return;
     }
     init_logging();
@@ -88,7 +88,7 @@ fn main() {
         log::info!("another instance is already running");
         return;
     }
-    log::info!("valoingest {} starting", env!("CARGO_PKG_VERSION"));
+    log::info!("valolysis {} starting", env!("CARGO_PKG_VERSION"));
     updater::cleanup_completed();
 
     let (sender, receiver) = mpsc::channel();
@@ -104,5 +104,5 @@ fn main() {
     }
 
     tray::run(shared, sender);
-    log::info!("valoingest exiting");
+    log::info!("valolysis exiting");
 }

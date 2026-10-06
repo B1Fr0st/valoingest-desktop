@@ -121,20 +121,7 @@ impl Engine {
         let dir = store::app_dir();
         let settings_path = dir.join("settings.json");
         let ledger_path = dir.join("uploads.json");
-        let mut settings: Settings = store::load(&settings_path);
-        if let Some(retired) = settings.migrate_api() {
-            // Same backend on a new hostname: keep the user signed in.
-            let old = Credentials::for_api(&retired);
-            if let Some(token) = old.read()
-                && Credentials::for_api(settings.api()).write(&token).is_ok()
-            {
-                old.delete();
-            }
-            if let Err(error) = store::save(&settings_path, &settings) {
-                log::error!("could not save migrated settings: {error}");
-            }
-            log::info!("moved from {retired} to {}", settings.api());
-        }
+        let settings: Settings = store::load(&settings_path);
         let ledger: Ledger = store::load(&ledger_path);
         let api = Api::new(settings.api());
         let credentials = Credentials::for_api(settings.api());
@@ -189,7 +176,7 @@ impl Engine {
                         log::warn!("automatic update deferred: {error}");
                         self.notify(
                             "Update deferred",
-                            "Valoingest could not install an update. It will retry next startup; see the log for details.",
+                            "Valolysis could not install an update. It will retry next startup; see the log for details.",
                             true,
                         );
                     }
@@ -311,7 +298,7 @@ impl Engine {
         self.credentials.delete();
         self.notify(
             "Sign in again",
-            "Your Valoingest session expired. Uploads are paused until you sign in.",
+            "Your Valolysis session expired. Uploads are paused until you sign in.",
             true,
         );
     }
@@ -974,7 +961,7 @@ mod tests {
 
     fn temp_dir(name: &str) -> PathBuf {
         let dir =
-            std::env::temp_dir().join(format!("valoingest-engine-{name}-{}", std::process::id()));
+            std::env::temp_dir().join(format!("valolysis-engine-{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir

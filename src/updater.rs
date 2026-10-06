@@ -22,9 +22,9 @@ use windows_sys::Win32::{
     System::Threading::{CREATE_NO_WINDOW, OpenProcess, PROCESS_SYNCHRONIZE, WaitForSingleObject},
 };
 
-const REPOSITORY: &str = "B1Fr0st/valoingest-desktop";
-const ASSET_NAME: &str = "valoingest-windows-x64.exe";
-const STAGE_PREFIX: &str = ".valoingest-update-";
+const REPOSITORY: &str = "B1Fr0st/valolysis-desktop";
+const ASSET_NAME: &str = "valolysis-windows-x64.exe";
+const STAGE_PREFIX: &str = ".valolysis-update-";
 const MAX_DOWNLOAD_BYTES: u64 = 64 * 1024 * 1024;
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 const STAGE_FILES: &[&str] = &[
@@ -118,7 +118,7 @@ fn agent(timeout: Duration) -> Agent {
         .https_only(true)
         .timeout_global(Some(timeout))
         .timeout_connect(Some(Duration::from_secs(5)))
-        .user_agent(concat!("valoingest-desktop/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("valolysis-desktop/", env!("CARGO_PKG_VERSION")))
         .build()
         .into()
 }
@@ -482,7 +482,7 @@ mod tests {
         let mut nonce = [0_u8; 8];
         getrandom::fill(&mut nonce).unwrap();
         let suffix: String = nonce.iter().map(|byte| format!("{byte:02x}")).collect();
-        let path = std::env::temp_dir().join(format!("valoingest update ' & ü {suffix}"));
+        let path = std::env::temp_dir().join(format!("valolysis update ' & Ã¼ {suffix}"));
         fs::create_dir(&path).unwrap();
         path
     }
@@ -607,10 +607,10 @@ mod tests {
             &target
         ));
         assert!(!valid_stage(
-            Path::new("C:\\Elsewhere\\.valoingest-update-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            Path::new("C:\\Elsewhere\\.valolysis-update-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
             &target
         ));
-        assert!(!valid_stage(&parent.join(".valoingest-update-.."), &target));
+        assert!(!valid_stage(&parent.join(".valolysis-update-.."), &target));
         assert!(!valid_stage(&parent.join("unrelated"), &target));
     }
 

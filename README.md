@@ -1,16 +1,16 @@
-# Valoingest Desktop
+# Valolysis Desktop
 
-A Windows notification-area app that watches VALORANT replay downloads and uploads them to [Valoingest](https://valoingest.odinnichols.dev).
+A Windows notification-area app that watches VALORANT replay downloads and uploads them to [Valolysis](https://valolysis.odinnichols.dev).
 
 ## Download and run
 
-Download `valoingest-windows-x64.exe` from the [latest release](https://github.com/B1Fr0st/valoingest-desktop/releases/latest), save it in a permanent folder you can write to (for example `%LOCALAPPDATA%\Programs\Valoingest`), and run it. The app lives in the notification area; right-click its icon to sign in with Google and choose your upload and privacy settings. Windows may ask you to approve running this unsigned executable.
+Download `valolysis-windows-x64.exe` from the [latest release](https://github.com/B1Fr0st/valolysis-desktop/releases/latest), save it in a permanent folder you can write to (for example `%LOCALAPPDATA%\Programs\Valolysis`), and run it. The app lives in the notification area; right-click its icon to sign in with Google and choose your upload and privacy settings. Windows may ask you to approve running this unsigned executable.
 
 - Watches `%LOCALAPPDATA%\VALORANT\Saved\Demos`, waits for finished downloads, and skips duplicate replays.
 - Replays already present on first launch are uploaded only when you choose **Upload earlier replays**.
 - Choose publication, name/player ID redaction, notifications, and **Start with Windows** in the tray menu.
 - Optional deletion moves successfully uploaded or processed replays to the Recycle Bin.
-- Settings, upload history, and logs live in `%LOCALAPPDATA%\Valoingest`; login sessions are stored in Windows Credential Manager.
+- Settings, upload history, and logs live in `%LOCALAPPDATA%\Valolysis`; login sessions are stored in Windows Credential Manager.
 
 This repository contains the Windows desktop client only. The API and parsing service are maintained separately.
 
@@ -20,7 +20,7 @@ Starting with v0.2.0, the app checks this repository's latest stable GitHub rele
 
 The upload engine finishes its current operation and saves its history before exiting. A separate helper waits for the app process to exit, replaces the executable at its original path, and restarts it. The original binary is backed up during replacement and restored if launching the new executable fails. Settings, credentials, replay files, and the **Start with Windows** path are preserved.
 
-Keep the executable in a folder your Windows user can write to. If GitHub is offline, rate limited, or the folder is protected, the current app keeps running and retries at its next startup. Update events and failures appear in `%LOCALAPPDATA%\Valoingest\valoingest.log`. A failed installation restarts the previous app without immediately retrying, to avoid a restart loop. Completed update staging files are removed after startup; failed-installation backups are retained for recovery.
+Keep the executable in a folder your Windows user can write to. If GitHub is offline, rate limited, or the folder is protected, the current app keeps running and retries at its next startup. Update events and failures appear in `%LOCALAPPDATA%\Valolysis\valolysis.log`. A failed installation restarts the previous app without immediately retrying, to avoid a restart loop. Completed update staging files are removed after startup; failed-installation backups are retained for recovery.
 
 v0.1.0 predates the updater: download and run v0.2.0 or newer once to receive future updates automatically.
 
@@ -33,10 +33,10 @@ cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
 cargo build --locked --release
-.\target\release\valoingest.exe
+.\target\release\valolysis.exe
 ```
 
-Set `VALOINGEST_API` at build time to use a different default API server.
+Set `VALOLYSIS_API` at build time to use a different default API server.
 
 The unit tests cover version selection, rejected release metadata and downloads, replacement of locked files, and rollback after a failed restart. To also download and verify the current public release:
 

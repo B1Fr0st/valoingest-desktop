@@ -1,5 +1,5 @@
 //! Persistent settings and the upload ledger, stored as JSON under
-//! `%LOCALAPPDATA%\Valoingest`. Writes are atomic (temp file + rename).
+//! `%LOCALAPPDATA%\Valolysis`. Writes are atomic (temp file + rename).
 
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{
@@ -9,9 +9,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub const DEFAULT_API: &str = match option_env!("VALOINGEST_API") {
+pub const DEFAULT_API: &str = match option_env!("VALOLYSIS_API") {
     Some(api) => api,
-    None => "https://valoingest.odinnichols.dev",
+    None => "https://valolysis.odinnichols.dev",
 };
 
 pub fn now_secs() -> u64 {
@@ -22,7 +22,7 @@ pub fn now_secs() -> u64 {
 }
 
 pub fn app_dir() -> PathBuf {
-    local_app_data().join("Valoingest")
+    local_app_data().join("Valolysis")
 }
 
 fn local_app_data() -> PathBuf {
@@ -71,21 +71,7 @@ impl Default for Settings {
     }
 }
 
-/// Servers earlier builds saved as their default; moved to `DEFAULT_API` on start.
-pub const RETIRED_APIS: &[&str] = &["https://valoingest.billowing-violet-1c47.workers.dev"];
-
 impl Settings {
-    /// Moves a saved retired default to the current one. Returns the old API
-    /// when it changed, so the stored session can be carried over.
-    pub fn migrate_api(&mut self) -> Option<String> {
-        let current = self.api().to_owned();
-        if current != DEFAULT_API && RETIRED_APIS.contains(&current.as_str()) {
-            self.api = DEFAULT_API.to_owned();
-            return Some(current);
-        }
-        None
-    }
-
     pub fn demos_dir(&self) -> PathBuf {
         self.demos_dir.clone().unwrap_or_else(default_demos_dir)
     }
@@ -263,22 +249,6 @@ mod tests {
     }
 
     #[test]
-    fn retired_default_servers_move_to_the_current_one() {
-        let mut settings = Settings {
-            api: format!("{}/", RETIRED_APIS[0]),
-            ..Settings::default()
-        };
-        assert_eq!(settings.migrate_api().as_deref(), Some(RETIRED_APIS[0]));
-        assert_eq!(settings.api, DEFAULT_API);
-        assert_eq!(settings.migrate_api(), None, "only once");
-        let mut custom = Settings {
-            api: "https://self-hosted.example".into(),
-            ..Settings::default()
-        };
-        assert_eq!(custom.migrate_api(), None, "custom servers are left alone");
-    }
-
-    #[test]
     fn duplicate_detection_ignores_unfinished_entries() {
         let mut ledger = Ledger::default();
         let mut uploaded = Entry::new(1, 1, Status::Ready);
@@ -350,7 +320,7 @@ mod tests {
     #[test]
     fn save_and_load_round_trip() {
         let path =
-            std::env::temp_dir().join(format!("valoingest-store-{}.json", std::process::id()));
+            std::env::temp_dir().join(format!("valolysis-store-{}.json", std::process::id()));
         let mut ledger = Ledger::default();
         ledger
             .files

@@ -39,8 +39,8 @@ jobs:
         run: cargo test --locked
       - name: Build Windows x64
         run: cargo build --locked --release --target x86_64-pc-windows-msvc
-      - name: Verify update helper against the published baseline
-        run: powershell.exe -NoProfile -File scripts/Test-UpdateHelper.ps1 -NewExecutable target/x86_64-pc-windows-msvc/release/valoingest.exe
+      - name: Verify executable replacement
+        run: powershell.exe -NoProfile -File scripts/Test-UpdateHelper.ps1 -NewExecutable target/x86_64-pc-windows-msvc/release/valolysis.exe
       - name: Package
         id: package
         run: |
@@ -52,15 +52,15 @@ jobs:
             throw "Tag must match Cargo.toml version ($tag)"
           }
           New-Item -ItemType Directory -Force .release | Out-Null
-          Copy-Item target/x86_64-pc-windows-msvc/release/valoingest.exe .release/valoingest-windows-x64.exe
-          $hash = (Get-FileHash .release/valoingest-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  valoingest-windows-x64.exe" | Set-Content .release/SHA256SUMS -Encoding ascii
-          Compress-Archive -Path .release/valoingest-windows-x64.exe,README.md -DestinationPath .release/valoingest-windows-x64.zip
+          Copy-Item target/x86_64-pc-windows-msvc/release/valolysis.exe .release/valolysis-windows-x64.exe
+          $hash = (Get-FileHash .release/valolysis-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  valolysis-windows-x64.exe" | Set-Content .release/SHA256SUMS -Encoding ascii
+          Compress-Archive -Path .release/valolysis-windows-x64.exe,README.md -DestinationPath .release/valolysis-windows-x64.zip
           "tag=$tag" >> $env:GITHUB_OUTPUT
       - name: Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: valoingest-windows-x64
+          name: valolysis-windows-x64
           path: .release/*
           include-hidden-files: true
           if-no-files-found: error
@@ -85,12 +85,12 @@ jobs:
               Write-Host "Release $env:RELEASE_TAG already exists; bump Cargo.toml to publish another."
               exit 0
             }
-            gh release upload $env:RELEASE_TAG .release/valoingest-windows-x64.exe .release/valoingest-windows-x64.zip .release/SHA256SUMS --repo $env:GITHUB_REPOSITORY --clobber
+            gh release upload $env:RELEASE_TAG .release/valolysis-windows-x64.exe .release/valolysis-windows-x64.zip .release/SHA256SUMS --repo $env:GITHUB_REPOSITORY --clobber
             if ($LASTEXITCODE -ne 0) { throw 'Could not resume draft asset upload' }
           } else {
             gh api "repos/$env:GITHUB_REPOSITORY" --silent
             if ($LASTEXITCODE -ne 0) { throw 'GitHub API is unavailable' }
-            gh release create $env:RELEASE_TAG .release/valoingest-windows-x64.exe .release/valoingest-windows-x64.zip .release/SHA256SUMS --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "Valoingest $env:RELEASE_TAG" --generate-notes --draft
+            gh release create $env:RELEASE_TAG .release/valolysis-windows-x64.exe .release/valolysis-windows-x64.zip .release/SHA256SUMS --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "Valolysis $env:RELEASE_TAG" --generate-notes --draft
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release' }
           }
           gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --latest
