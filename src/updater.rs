@@ -362,25 +362,29 @@ pub fn apply_update() -> Result<()> {
     if status != WAIT_OBJECT_0 {
         return Err("parent did not exit; leaving existing app untouched".into());
     }
-    if hash_file(&job.target)? != job.original_sha256 {
-        return Err("installed executable changed while waiting".into());
-    }
-    let replacement = stage.join("replacement.exe");
-    fs::copy(&helper, &replacement)?;
-    fs::OpenOptions::new()
-        .write(true)
-        .open(&replacement)?
-        .sync_all()?;
-    verify_executable(&replacement, &job.sha256)?;
-    let result = install_and_restart(
-        &job.target,
-        &replacement,
-        &stage.join("previous.exe"),
-        || {
-            spawn(&job.target, &["--background"])?;
-            Ok(())
-        },
-    );
+    // Every failure after the old process exits must restart it, including
+    // errors while copying or flushing the replacement (e.g. a full disk).
+    let result: Result<()> = (|| {
+        if hash_file(&job.target)? != job.original_sha256 {
+            return Err("installed executable changed while waiting".into());
+        }
+        let replacement = stage.join("replacement.exe");
+        fs::copy(&helper, &replacement)?;
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&replacement)?
+            .sync_all()?;
+        verify_executable(&replacement, &job.sha256)?;
+        install_and_restart(
+            &job.target,
+            &replacement,
+            &stage.join("previous.exe"),
+            || {
+                spawn(&job.target, &["--background"])?;
+                Ok(())
+            },
+        )
+    })();
     if let Err(error) = result {
         // Avoid a restart/update/restart loop when installation fails. The next
         // normal startup tries again.
@@ -388,7 +392,9 @@ pub fn apply_update() -> Result<()> {
         return Err(error);
     }
     log::info!("desktop updated to {}", job.version);
-    fs::write(stage.join("complete"), b"complete")?;
+    if let Err(error) = fs::write(stage.join("complete"), b"complete") {
+        log::warn!("update installed; could not record cleanup receipt: {error}");
+    }
     Ok(())
 }
 

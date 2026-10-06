@@ -1,6 +1,6 @@
 [package]
 name = "valoingest-desktop"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Valoingest tray service: watches VALORANT replay downloads and uploads them"
 
