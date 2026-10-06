@@ -60,6 +60,7 @@ jobs:
         with:
           name: valoingest-windows-x64
           path: .release/*
+          include-hidden-files: true
           if-no-files-found: error
       - name: Publish versioned release
         if: github.event_name != 'pull_request'
