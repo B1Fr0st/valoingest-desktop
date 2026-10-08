@@ -76,7 +76,7 @@ finally {
     $env:VALOLYSIS_PORTABLE = $previousPortable
     if ($null -ne $process -and !$process.HasExited) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue }
     Get-Process | Where-Object {
-        $_.Path -eq $target -or ($_.Path -and $_.Path.StartsWith($install + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase))
+        $_.Path -and $_.Path.StartsWith($testDir + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
     } | Stop-Process -ErrorAction SilentlyContinue
     $resolvedTestDir = [IO.Path]::GetFullPath($testDir)
     if (!$resolvedTestDir.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {

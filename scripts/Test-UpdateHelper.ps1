@@ -13,10 +13,13 @@ $target = Join-Path $testDir 'Valolysis app.exe'
 $helper = $null
 $parent = $null
 $previousAppData = $env:LOCALAPPDATA
+$previousPortable = $env:VALOLYSIS_PORTABLE
 
 try {
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     $env:LOCALAPPDATA = Join-Path $testDir 'AppData'
+    # Run in place; the restarted app inherits this and does not install itself.
+    $env:VALOLYSIS_PORTABLE = '1'
     $manifest = Get-Content (Join-Path $workspace 'Cargo.toml') -Raw
     $version = [regex]::Match($manifest, '(?m)^version = "([^"]+)"').Groups[1].Value
     Copy-Item -LiteralPath (Join-Path $env:WINDIR 'System32/where.exe') -Destination $target
@@ -67,10 +70,13 @@ catch {
 }
 finally {
     $env:LOCALAPPDATA = $previousAppData
+    $env:VALOLYSIS_PORTABLE = $previousPortable
     foreach ($process in @($parent, $helper)) {
         if ($null -ne $process -and !$process.HasExited) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue }
     }
-    Get-Process | Where-Object { $_.Path -eq $target } | Stop-Process -ErrorAction SilentlyContinue
+    Get-Process | Where-Object {
+        $_.Path -and $_.Path.StartsWith($testDir + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
+    } | Stop-Process -ErrorAction SilentlyContinue
     $resolvedTestDir = [IO.Path]::GetFullPath($testDir)
     if (!$resolvedTestDir.StartsWith($testRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
         throw 'Refusing to clean a directory outside the integration-test workspace'
