@@ -38,8 +38,6 @@ use windows_sys::Win32::{
 /// integration scripts and development builds do. Child processes inherit it.
 pub const PORTABLE_ENV: &str = "VALOLYSIS_PORTABLE";
 const EXE_NAME: &str = "valolysis.exe";
-/// The name the README used to suggest saving the download under.
-const LEGACY_EXE_NAME: &str = "valolysis-windows-x64.exe";
 const UNINSTALL_KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Valolysis";
 
 pub fn portable() -> bool {
@@ -138,13 +136,6 @@ pub fn refresh_registration() {
     let exe = installed_exe();
     if let Err(error) = write_uninstall_entry(&exe) {
         log::warn!("could not register with Apps & features: {error}");
-    }
-    // A copy run from Downloads or elsewhere may own Start with Windows.
-    if platform::autostart_command().is_some() && !platform::autostart_enabled() {
-        match platform::set_autostart(true) {
-            Ok(()) => log::info!("moved Start with Windows to the installed app"),
-            Err(error) => log::warn!("could not update Start with Windows: {error}"),
-        }
     }
 }
 
@@ -291,7 +282,7 @@ fn remove_install_dir() -> io::Result<()> {
     let dir = install_dir();
     let exe = installed_exe();
     updater::remove_all_stages(&exe);
-    for name in [LEGACY_EXE_NAME, &format!("{EXE_NAME}.new")] {
+    for name in &format!("{EXE_NAME}.new") {
         remove_if_present(&dir.join(name))?;
     }
     let running_installed = std::env::current_exe()

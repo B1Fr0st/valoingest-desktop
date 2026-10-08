@@ -260,7 +260,7 @@ fn run_command() -> Option<String> {
     } else {
         ""
     };
-    Some(format!("\"{}\" {portable}", exe.display()))
+    Some(format!("\"{}\"{portable}", exe.display()))
 }
 
 /// The current Run key command, whichever executable it points at.

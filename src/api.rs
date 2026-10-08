@@ -213,12 +213,6 @@ impl Api {
         Self::parse(self.call("POST", "/v1/uploads", Some(token), Payload::Json(body))?)
     }
 
-    pub fn upload_part(&self, token: &str, upload_id: &str, part: u32, bytes: &[u8]) -> Result<()> {
-        let path = format!("/v1/uploads/parts/{part}?uploadId={}", encode(upload_id));
-        self.call("PUT", &path, Some(token), Payload::Bytes(bytes))
-            .map(|_| ())
-    }
-
     /// Completes an upload. Direct uploads pass the `(part number, ETag)`
     /// pairs R2 returned; proxied uploads pass none.
     pub fn complete_upload(

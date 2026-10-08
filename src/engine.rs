@@ -566,17 +566,14 @@ impl Engine {
                 .parts
                 .as_ref()
                 .and_then(|parts| parts.iter().find(|p| p.part_number == part));
-            let result = match direct {
-                Some(direct) if direct.size as usize == expected => self
-                    .api
+            let result = if direct.size as usize == expected {
+                self.api
                     .upload_direct_part(&direct.url, &buffer[..expected])
-                    .map(|etag| etags.push((part, etag))),
-                Some(_) => Err(crate::api::ApiError::Transient(
+                    .map(|etag| etags.push((part, etag)))
+            } else { 
+                Err(crate::api::ApiError::Transient(
                     "server part sizes disagree with the file".into(),
-                )),
-                None => self
-                    .api
-                    .upload_part(token, &created.upload_id, part, &buffer[..expected]),
+                ))
             };
             if let Err(error) = result {
                 let _ = self.api.abort_upload(token, &created.upload_id);
