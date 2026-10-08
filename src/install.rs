@@ -244,7 +244,6 @@ pub fn uninstall() {
             problems.push(format!("{what}: {error}"));
         }
     };
-    let settings: store::Settings = store::load(&store::app_dir().join("settings.json"));
     platform::Credentials::for_api("https://valolysis.odinnichols.dev").delete();
     if platform::autostart_command().is_some_and(|command| {
         command
