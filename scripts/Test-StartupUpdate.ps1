@@ -10,6 +10,7 @@ $install = Join-Path $testDir 'install'
 $target = Join-Path $install 'valolysis.exe'
 $previousAppData = $env:LOCALAPPDATA
 $previousTargetDir = $env:CARGO_TARGET_DIR
+$previousPortable = $env:VALOLYSIS_PORTABLE
 $process = $null
 
 try {
@@ -35,6 +36,8 @@ try {
     $asset = $latest.assets | Where-Object { $_.name -eq 'valolysis-windows-x64.exe' }
     $expectedHash = $asset.digest.Substring(7)
     $env:LOCALAPPDATA = Join-Path $testDir 'AppData'
+    # Run in place; the restarted app inherits this and does not install itself.
+    $env:VALOLYSIS_PORTABLE = '1'
     $settingsDir = Join-Path $env:LOCALAPPDATA 'Valolysis'
     $demosDir = Join-Path $testDir 'EmptyDemos'
     New-Item -ItemType Directory -Path $settingsDir, $demosDir -Force | Out-Null
@@ -70,6 +73,7 @@ catch {
 finally {
     $env:LOCALAPPDATA = $previousAppData
     $env:CARGO_TARGET_DIR = $previousTargetDir
+    $env:VALOLYSIS_PORTABLE = $previousPortable
     if ($null -ne $process -and !$process.HasExited) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue }
     Get-Process | Where-Object {
         $_.Path -eq $target -or ($_.Path -and $_.Path.StartsWith($install + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase))

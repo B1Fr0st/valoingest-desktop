@@ -422,6 +422,19 @@ fn remove_stage_files(stage: &Path) {
     let _ = fs::remove_dir(stage);
 }
 
+/// Removes every update stage for `target`, including retained backups.
+pub fn remove_all_stages(target: &Path) {
+    let Some(Ok(entries)) = target.parent().map(fs::read_dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let stage = entry.path();
+        if stage.is_dir() && valid_stage(&stage, target) {
+            remove_stage_files(&stage);
+        }
+    }
+}
+
 pub fn cleanup_completed() {
     // The helper may finish just after the new process launches.
     let _ = std::thread::Builder::new()

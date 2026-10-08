@@ -40,7 +40,9 @@ use windows_sys::Win32::{
 
 const WM_TRAY: u32 = WM_APP + 1;
 const WM_REFRESH: u32 = WM_APP + 2;
-const WM_EXIT: u32 = WM_APP + 3;
+/// Posted by the uninstaller, too, to stop a running app.
+pub const WM_EXIT: u32 = WM_APP + 3;
+pub const CLASS_NAME: &str = "ValolysisTray";
 const ICON_ID: u32 = 1;
 
 static WINDOW: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -121,7 +123,7 @@ thread_local! {
 pub fn run(shared: Arc<Shared>, commands: Sender<Command>) {
     unsafe {
         let instance = GetModuleHandleW(ptr::null());
-        let class_name = wide("ValolysisTray");
+        let class_name = wide(CLASS_NAME);
         let class = WNDCLASSEXW {
             cbSize: size_of::<WNDCLASSEXW>() as u32,
             lpfnWndProc: Some(window_proc),

@@ -25,7 +25,7 @@ pub fn app_dir() -> PathBuf {
     local_app_data().join("Valolysis")
 }
 
-fn local_app_data() -> PathBuf {
+pub fn local_app_data() -> PathBuf {
     std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))

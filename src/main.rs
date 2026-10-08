@@ -8,6 +8,7 @@
 
 mod api;
 mod engine;
+mod install;
 mod login;
 mod platform;
 mod store;
@@ -73,6 +74,17 @@ fn main() {
         println!("valolysis {}", env!("CARGO_PKG_VERSION"));
         return;
     }
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "--uninstall")
+    {
+        install::uninstall();
+        return;
+    }
+    if std::env::args_os().any(|arg| arg == "--portable") {
+        // Before any threads start; children such as the updater inherit it.
+        unsafe { std::env::set_var(install::PORTABLE_ENV, "1") };
+    }
     init_logging();
     if std::env::args_os()
         .nth(1)
@@ -84,10 +96,32 @@ fn main() {
         }
         return;
     }
-    if !platform::acquire_single_instance() {
+    let Some(instance) = platform::SingleInstance::acquire() else {
         log::info!("another instance is already running");
         return;
-    }
+    };
+    let instance = match install::relocate() {
+        Ok(install::Placement::Installed) => {
+            install::refresh_registration();
+            instance
+        }
+        Ok(install::Placement::Portable) => instance,
+        Ok(install::Placement::Relocated(installed)) => {
+            drop(instance);
+            match install::launch(&installed) {
+                Ok(()) => return,
+                Err(error) => log::error!("could not start the installed app: {error}"),
+            }
+            let Some(instance) = platform::SingleInstance::acquire() else {
+                return;
+            };
+            instance
+        }
+        Err(error) => {
+            log::error!("could not install; running from this folder: {error}");
+            instance
+        }
+    };
     log::info!("valolysis {} starting", env!("CARGO_PKG_VERSION"));
     updater::cleanup_completed();
 
@@ -105,4 +139,5 @@ fn main() {
 
     tray::run(shared, sender);
     log::info!("valolysis exiting");
+    drop(instance);
 }

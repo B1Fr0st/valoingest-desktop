@@ -4,7 +4,11 @@ A Windows notification-area app that watches VALORANT replay downloads and uploa
 
 ## Download and run
 
-Download `valolysis-windows-x64.exe` from the [latest release](https://github.com/B1Fr0st/valolysis-desktop/releases/latest), save it in a permanent folder you can write to (for example `%LOCALAPPDATA%\Programs\Valolysis`), and run it. The app lives in the notification area; right-click its icon to sign in with Google and choose your upload and privacy settings. Windows may ask you to approve running this unsigned executable.
+Download `valolysis-windows-x64.exe` from the [latest release](https://github.com/B1Fr0st/valolysis-desktop/releases/latest) and run it. Windows may ask you to approve running this unsigned executable. The first run installs the app for your Windows user in `%LOCALAPPDATA%\Programs\Valolysis`, adds **Valolysis** to the Start menu and to **Settings > Apps > Installed apps**, and starts the installed copy. No administrator rights are needed, and the downloaded file can be deleted afterwards. The app lives in the notification area; right-click its icon to sign in with Google and choose your upload and privacy settings.
+
+To remove it, uninstall **Valolysis** from **Installed apps**. This closes the app and removes it, its Start menu entry, Start with Windows, and the saved sign-in. You choose whether to also delete settings and upload history; replays are never touched.
+
+Running an older download never replaces a newer installed version. Copies previously saved elsewhere move into the install folder the next time they start, and Start with Windows follows them. To run without installing, start the executable with `--portable` or set `VALOLYSIS_PORTABLE=1`; debug builds always run in place.
 
 - Watches `%LOCALAPPDATA%\VALORANT\Saved\Demos`, waits for finished downloads, and skips duplicate replays.
 - Replays already present on first launch are uploaded only when you choose **Upload earlier replays**.
@@ -20,7 +24,7 @@ The app checks this repository's latest stable GitHub release at each startup. T
 
 The upload engine finishes its current operation and saves its history before exiting. A separate helper waits for the app process to exit, replaces the executable at its original path, and restarts it. The original binary is backed up during replacement and restored if launching the new executable fails. Settings, credentials, replay files, and the **Start with Windows** path are preserved.
 
-Keep the executable in a folder your Windows user can write to. If GitHub is offline, rate limited, or the folder is protected, the current app keeps running and retries at its next startup. Update events and failures appear in `%LOCALAPPDATA%\Valolysis\valolysis.log`. A failed installation restarts the previous app without immediately retrying, to avoid a restart loop. Completed update staging files are removed after startup; failed-installation backups are retained for recovery.
+If GitHub is offline, rate limited, or the folder is protected, the current app keeps running and retries at its next startup. Update events and failures appear in `%LOCALAPPDATA%\Valolysis\valolysis.log`. A failed installation restarts the previous app without immediately retrying, to avoid a restart loop. Completed update staging files are removed after startup; failed-installation backups are retained for recovery.
 
 ## Build and test
 
@@ -31,7 +35,7 @@ cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
 cargo build --locked --release
-.\target\release\valolysis.exe
+.\target\release\valolysis.exe --portable
 ```
 
 Set `VALOLYSIS_API` at build time to use a different default API server.
