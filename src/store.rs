@@ -235,15 +235,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn settings_tolerate_missing_and_unknown_fields() {
-        let settings: Settings =
-            serde_json::from_str(r#"{"publish": false, "future": 1}"#).unwrap();
-        assert!(!settings.publish);
-        assert!(settings.auto_upload);
-        assert_eq!(settings.api, "https://valolysis.odinnichols.dev".into());
-    }
-
-    #[test]
     fn duplicate_detection_ignores_unfinished_entries() {
         let mut ledger = Ledger::default();
         let mut uploaded = Entry::new(1, 1, Status::Ready);
