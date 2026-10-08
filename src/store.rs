@@ -9,10 +9,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub const DEFAULT_API: &str = match option_env!("VALOLYSIS_API") {
-    Some(api) => api,
-    None => "https://valolysis.odinnichols.dev",
-};
 
 pub fn now_secs() -> u64 {
     SystemTime::now()
@@ -59,7 +55,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            api: DEFAULT_API.to_owned(),
+            api: "https://valolysis.odinnichols.dev".into(),
             auto_upload: true,
             publish: true,
             redact_names: false,
@@ -245,7 +241,7 @@ mod tests {
             serde_json::from_str(r#"{"publish": false, "future": 1}"#).unwrap();
         assert!(!settings.publish);
         assert!(settings.auto_upload);
-        assert_eq!(settings.api, DEFAULT_API);
+        assert_eq!(settings.api, "https://valolysis.odinnichols.dev".into());
     }
 
     #[test]

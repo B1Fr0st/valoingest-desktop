@@ -38,8 +38,6 @@ cargo build --locked --release
 .\target\release\valolysis.exe --portable
 ```
 
-Set `VALOLYSIS_API` at build time to use a different default API server.
-
 The unit tests cover version selection, rejected release metadata and downloads, replacement of locked files, and rollback after a failed restart. To also download and verify the current public release:
 
 ```powershell
