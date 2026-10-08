@@ -258,9 +258,7 @@ pub fn uninstall() {
         }
     };
     let settings: store::Settings = store::load(&store::app_dir().join("settings.json"));
-    for api in [settings.api(), store::DEFAULT_API] {
-        platform::Credentials::for_api(api).delete();
-    }
+    platform::Credentials::for_api(settings.api()).delete();
     if platform::autostart_command().is_some_and(|command| {
         command
             .to_ascii_lowercase()
