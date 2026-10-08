@@ -535,10 +535,24 @@ impl Engine {
             redact_pids: self.settings.redact_pids,
             publish: self.settings.publish,
         };
-        let created = match self.api.create_upload(token, &request) {
+        let mut created = match self.api.create_upload(token, &request) {
             Ok(created) => created,
             Err(error) => return self.upload_failed(key, &display, error),
         };
+        // The part sizes bound the read buffer, so they must cover the file exactly.
+        created.parts.sort_by_key(|part| part.part_number);
+        let total = created
+            .parts
+            .iter()
+            .try_fold(0_u64, |sum, part| sum.checked_add(part.size));
+        if created.parts.is_empty() || total != Some(metadata.len()) {
+            let _ = self.api.abort_upload(token, &created.upload_id);
+            return self.upload_failed(
+                key,
+                &display,
+                ApiError::Transient("server part list disagrees with the file".into()),
+            );
+        }
 
         let mut file = match File::open(&path) {
             Ok(file) => file,
@@ -547,37 +561,29 @@ impl Engine {
                 return self.retry_later(key, &format!("could not read file: {error}"));
             }
         };
-        let mut buffer = vec![0_u8; created.part_size as usize];
-        let mut etags: Vec<(u32, String)> = Vec::new();
-        for part in 1..=created.part_count {
-            let expected = if part < created.part_count {
-                created.part_size
-            } else {
-                metadata.len() - created.part_size * u64::from(created.part_count - 1)
-            } as usize;
-            if let Err(error) = file.read_exact(&mut buffer[..expected]) {
+        let largest = created
+            .parts
+            .iter()
+            .map(|part| part.size)
+            .max()
+            .unwrap_or(0);
+        let mut buffer = vec![0_u8; largest as usize];
+        let count = created.parts.len();
+        let mut etags: Vec<(u32, String)> = Vec::with_capacity(count);
+        for (index, part) in created.parts.iter().enumerate() {
+            let bytes = &mut buffer[..part.size as usize];
+            if let Err(error) = file.read_exact(bytes) {
                 let _ = self.api.abort_upload(token, &created.upload_id);
                 return self.retry_later(key, &format!("file changed while uploading: {error}"));
             }
-            let percent = part * 100 / created.part_count;
+            let percent = (index + 1) * 100 / count;
             self.set_activity(format!("Uploading {display} ({percent}%)"));
-            // Direct mode sends the bytes straight to R2; otherwise the Worker proxies them.
-            let direct = created
-                .parts
-                .as_ref()
-                .and_then(|parts| parts.iter().find(|p| p.part_number == part));
-            let result = if direct.size as usize == expected {
-                self.api
-                    .upload_direct_part(&direct.url, &buffer[..expected])
-                    .map(|etag| etags.push((part, etag)))
-            } else {
-                Err(crate::api::ApiError::Transient(
-                    "server part sizes disagree with the file".into(),
-                ))
-            };
-            if let Err(error) = result {
-                let _ = self.api.abort_upload(token, &created.upload_id);
-                return self.upload_failed(key, &display, error);
+            match self.api.upload_direct_part(&part.url, bytes) {
+                Ok(etag) => etags.push((part.part_number, etag)),
+                Err(error) => {
+                    let _ = self.api.abort_upload(token, &created.upload_id);
+                    return self.upload_failed(key, &display, error);
+                }
             }
         }
         if let Err(error) = self.api.complete_upload(token, &created.upload_id, &etags) {

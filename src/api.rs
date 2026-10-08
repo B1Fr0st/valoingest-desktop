@@ -54,11 +54,8 @@ pub struct DesktopSession {
 pub struct CreatedUpload {
     pub job_id: String,
     pub upload_id: String,
-    pub part_size: u64,
-    pub part_count: u32,
-    /// Presigned URLs for uploading parts straight to R2
-    #[serde(default)]
-    pub parts: Option<Vec<DirectPart>>,
+    /// Presigned R2 URLs, one per part.
+    pub parts: Vec<DirectPart>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -95,10 +92,9 @@ pub struct Api {
     agent: Agent,
 }
 
-enum Payload<'a> {
+enum Payload {
     None,
     Json(Value),
-    Bytes(&'a [u8]),
 }
 
 impl Api {
@@ -124,7 +120,7 @@ impl Api {
         method: &str,
         path: &str,
         token: Option<&str>,
-        payload: Payload<'_>,
+        payload: Payload,
     ) -> Result<Value> {
         let url = format!("{}{}", self.base, path);
         let authorization = token.map(|token| format!("Bearer {token}"));
@@ -144,9 +140,6 @@ impl Api {
                 .content_type("application/json")
                 .send(body.to_string()),
             ("POST", _) => with_auth!(self.agent.post(&url)).send_empty(),
-            ("PUT", Payload::Bytes(bytes)) => with_auth!(self.agent.put(&url))
-                .content_type("application/octet-stream")
-                .send(bytes),
             _ => unreachable!("unsupported request shape"),
         };
         let mut response =
@@ -213,21 +206,18 @@ impl Api {
         Self::parse(self.call("POST", "/v1/uploads", Some(token), Payload::Json(body))?)
     }
 
-    /// Completes an upload. Direct uploads pass the `(part number, ETag)`
-    /// pairs R2 returned; proxied uploads pass none.
+    /// Completes an upload with the `(part number, ETag)` pairs R2 returned.
     pub fn complete_upload(
         &self,
         token: &str,
         upload_id: &str,
         parts: &[(u32, String)],
     ) -> Result<()> {
-        let mut body = json!({ "uploadId": upload_id });
-        if !parts.is_empty() {
-            body["parts"] = parts
-                .iter()
-                .map(|(number, etag)| json!({ "partNumber": number, "etag": etag }))
-                .collect();
-        }
+        let parts: Vec<Value> = parts
+            .iter()
+            .map(|(number, etag)| json!({ "partNumber": number, "etag": etag }))
+            .collect();
+        let body = json!({ "uploadId": upload_id, "parts": parts });
         self.call(
             "POST",
             "/v1/uploads/complete",

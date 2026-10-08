@@ -282,9 +282,7 @@ fn remove_install_dir() -> io::Result<()> {
     let dir = install_dir();
     let exe = installed_exe();
     updater::remove_all_stages(&exe);
-    for name in &format!("{EXE_NAME}.new") {
-        remove_if_present(&dir.join(name))?;
-    }
+    remove_if_present(&dir.join(format!("{EXE_NAME}.new")))?;
     let running_installed = std::env::current_exe()
         .and_then(fs::canonicalize)
         .is_ok_and(|current| fs::canonicalize(&exe).is_ok_and(|installed| installed == current));
