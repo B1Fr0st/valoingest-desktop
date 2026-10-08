@@ -570,7 +570,7 @@ impl Engine {
                 self.api
                     .upload_direct_part(&direct.url, &buffer[..expected])
                     .map(|etag| etags.push((part, etag)))
-            } else { 
+            } else {
                 Err(crate::api::ApiError::Transient(
                     "server part sizes disagree with the file".into(),
                 ))
