@@ -146,19 +146,6 @@ pub fn refresh_registration() {
             Err(error) => log::warn!("could not update Start with Windows: {error}"),
         }
     }
-    // The legacy copy may still be exiting after handing off.
-    let legacy = install_dir().join(LEGACY_EXE_NAME);
-    if legacy.is_file() {
-        let _ = std::thread::Builder::new()
-            .name("install-cleanup".into())
-            .spawn(move || {
-                std::thread::sleep(Duration::from_secs(3));
-                match fs::remove_file(&legacy) {
-                    Ok(()) => log::info!("removed {}", legacy.display()),
-                    Err(error) => log::warn!("could not remove {}: {error}", legacy.display()),
-                }
-            });
-    }
 }
 
 fn write_uninstall_entry(exe: &Path) -> io::Result<()> {
@@ -258,7 +245,7 @@ pub fn uninstall() {
         }
     };
     let settings: store::Settings = store::load(&store::app_dir().join("settings.json"));
-    platform::Credentials::for_api(settings.api()).delete();
+    platform::Credentials::for_api("https://valolysis.odinnichols.dev").delete();
     if platform::autostart_command().is_some_and(|command| {
         command
             .to_ascii_lowercase()

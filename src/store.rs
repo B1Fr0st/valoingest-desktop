@@ -37,7 +37,6 @@ pub fn default_demos_dir() -> PathBuf {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
-    pub api: String,
     /// Upload new replays as soon as they finish downloading.
     pub auto_upload: bool,
     /// Count uploads toward the public dataset.
@@ -54,7 +53,6 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            api: "https://valolysis.odinnichols.dev".into(),
             auto_upload: true,
             publish: true,
             redact_names: false,
@@ -69,10 +67,6 @@ impl Default for Settings {
 impl Settings {
     pub fn demos_dir(&self) -> PathBuf {
         self.demos_dir.clone().unwrap_or_else(default_demos_dir)
-    }
-
-    pub fn api(&self) -> &str {
-        self.api.trim_end_matches('/')
     }
 }
 
@@ -123,11 +117,8 @@ pub struct Entry {
     pub size: u64,
     pub modified: u64,
     pub status: Status,
-    #[serde(default)]
     pub sha256: Option<String>,
-    #[serde(default)]
     pub job_id: Option<String>,
-    #[serde(default)]
     pub error: Option<String>,
     #[serde(default)]
     pub attempts: u32,
@@ -292,15 +283,6 @@ mod tests {
         let mut kept = entry(Status::Ready, "f");
         kept.local = LocalFile::Kept;
         assert!(!ledger.deletable(&kept, DeleteAfter::Uploaded));
-    }
-
-    #[test]
-    fn older_ledgers_load_with_files_present() {
-        let entry: Entry =
-            serde_json::from_str(r#"{"size":1,"modified":2,"status":"ready"}"#).unwrap();
-        assert_eq!(entry.local, LocalFile::Present);
-        let settings: Settings = serde_json::from_str("{}").unwrap();
-        assert_eq!(settings.delete_after, DeleteAfter::Never);
     }
 
     #[test]

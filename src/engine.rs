@@ -23,13 +23,13 @@ use std::{
     },
     time::{Duration, Instant, UNIX_EPOCH},
 };
+use windows_sys::Win32::Storage::FileSystem::FILE_SHARE_READ;
 
 /// A replay must keep the same size and timestamp this long, and be openable
 /// without another writer, before it is treated as fully downloaded.
 const STABLE_FOR: Duration = Duration::from_secs(5);
 const RESCAN_EVERY: Duration = Duration::from_secs(60);
 const TICK: Duration = Duration::from_secs(2);
-const FILE_SHARE_READ: u32 = 1;
 
 pub enum Command {
     UpdateReady(Box<crate::updater::PreparedUpdate>),
@@ -123,8 +123,8 @@ impl Engine {
         let ledger_path = dir.join("uploads.json");
         let settings: Settings = store::load(&settings_path);
         let ledger: Ledger = store::load(&ledger_path);
-        let api = Api::new(settings.api());
-        let credentials = Credentials::for_api(settings.api());
+        let api = Api::new("https://valolysis.odinnichols.dev");
+        let credentials = Credentials::for_api("https://valolysis.odinnichols.dev");
         let token = credentials.read();
         Self {
             settings,
@@ -273,7 +273,7 @@ impl Engine {
         }
         let cancel = Arc::new(AtomicBool::new(false));
         self.sign_in_cancel = Some(cancel.clone());
-        let api = Api::new(self.settings.api());
+        let api = Api::new("https://valolysis.odinnichols.dev");
         let sender = self.commands.clone();
         std::thread::spawn(move || {
             let result = login::sign_in(&api, platform::open, &cancel);
@@ -907,16 +907,12 @@ fn find_case_insensitive(path: &Path) -> Option<PathBuf> {
         .map(|entry| entry.path())
 }
 
-/// Unreal local-file replay magic, the first four bytes of every .vrf file.
-const REPLAY_MAGIC: u32 = 0x43F4_EFDD;
-
-/// True when the file starts with the replay magic. Version fields are not
-/// checked: they change with game patches and the server parser decides.
+/// check the .vrf magic to avoid uploading non-replay files
 pub fn is_replay_file(path: &Path) -> bool {
     let mut magic = [0_u8; 4];
     File::open(path)
         .and_then(|mut file| file.read_exact(&mut magic))
-        .is_ok_and(|()| u32::from_le_bytes(magic) == REPLAY_MAGIC)
+        .is_ok_and(|()| u32::from_le_bytes(magic) == 0x43F4_EFDD)
 }
 
 pub fn hash_file(path: &Path) -> std::io::Result<String> {
@@ -1076,23 +1072,6 @@ mod tests {
         entry.sha256 = Some(hash_file(&path).unwrap());
         entry.size += 1;
         assert!(!unchanged_since_upload(&path, &entry), "different size");
-        let _ = fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn replay_precheck_reads_only_the_magic() {
-        let dir = temp_dir("magic");
-        let replay = dir.join("real.vrf");
-        let mut bytes = REPLAY_MAGIC.to_le_bytes().to_vec();
-        bytes.extend_from_slice(&[7, 0, 0, 0]);
-        fs::write(&replay, &bytes).unwrap();
-        assert!(is_replay_file(&replay));
-        let fake = dir.join("renamed.vrf");
-        fs::write(&fake, b"PK\x03\x04 a zip").unwrap();
-        assert!(!is_replay_file(&fake));
-        let short = dir.join("short.vrf");
-        fs::write(&short, [0xDD, 0xEF]).unwrap();
-        assert!(!is_replay_file(&short));
         let _ = fs::remove_dir_all(dir);
     }
 

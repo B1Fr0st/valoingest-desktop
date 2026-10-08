@@ -41,7 +41,7 @@ try {
     $settingsDir = Join-Path $env:LOCALAPPDATA 'Valolysis'
     $demosDir = Join-Path $testDir 'EmptyDemos'
     New-Item -ItemType Directory -Path $settingsDir, $demosDir -Force | Out-Null
-    $settings = @{ api = 'http://127.0.0.1:1'; auto_upload = $false; demos_dir = $demosDir } | ConvertTo-Json
+    $settings = @{ auto_upload = $false; demos_dir = $demosDir } | ConvertTo-Json
     [IO.File]::WriteAllText((Join-Path $settingsDir 'settings.json'), $settings, [Text.UTF8Encoding]::new($false))
     $process = Start-Process $target -WindowStyle Hidden -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(150)

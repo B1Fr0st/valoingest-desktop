@@ -249,7 +249,7 @@ fn activate(item: Item) {
         Item::UploadExisting => send(Command::UploadExisting),
         Item::RetryFailed => send(Command::RetryFailed),
         Item::OpenFolder => platform::open_folder(&settings.demos_dir()),
-        Item::OpenWebsite => platform::open(settings.api()),
+        Item::OpenWebsite => platform::open("https://valolysis.odinnichols.dev"),
         Item::Autostart => {
             let enable = !platform::autostart_enabled();
             if let Err(error) = platform::set_autostart(enable) {

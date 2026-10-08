@@ -56,8 +56,7 @@ pub struct CreatedUpload {
     pub upload_id: String,
     pub part_size: u64,
     pub part_count: u32,
-    /// Presigned URLs for uploading parts straight to R2; absent when the
-    /// server proxies parts instead.
+    /// Presigned URLs for uploading parts straight to R2
     #[serde(default)]
     pub parts: Option<Vec<DirectPart>>,
 }
@@ -111,7 +110,7 @@ impl Api {
             .build()
             .into();
         Self {
-            base: base.trim_end_matches('/').to_owned(),
+            base: base.to_owned(),
             agent,
         }
     }
